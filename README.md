@@ -30,11 +30,19 @@ This repository contains a `gh-pages` branch with `index.html` and `.nojekyll` a
 
 From the Mac hosting this shared folder:
 
+The `origin` remote is already configured for this checkout. From the Mac hosting this shared folder:
+
 ```bash
 cd /path/to/jack-it
-git remote add origin git@github.com:YOUR_USER/YOUR_REPO.git
+git remote -v
 git push -u origin main
 git push origin gh-pages
+```
+
+If you need to recreate the remote elsewhere:
+
+```bash
+git remote add origin https://github.com/jakedowns/jack-it-browser-game.git
 ```
 
 Then in the GitHub repository: **Settings → Pages → Build and deployment → Deploy from a branch**, choose **`gh-pages`** and **`/ (root)`**.
@@ -42,7 +50,7 @@ Then in the GitHub repository: **Settings → Pages → Build and deployment →
 Public URL:
 
 ```text
-https://YOUR_USER.github.io/YOUR_REPO/
+https://jakedowns.github.io/jack-it-browser-game/
 ```
 
 The page loads Three.js and the `box3d-wasm` package from jsDelivr, so the browser needs network access.
