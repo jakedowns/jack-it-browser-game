@@ -47,10 +47,6 @@ git remote add origin https://github.com/jakedowns/jack-it-browser-game.git
 
 Then in the GitHub repository: **Settings → Pages → Build and deployment → Deploy from a branch**, choose **`gh-pages`** and **`/ (root)`**.
 
-Public URL:
-
-```text
-https://jakedowns.github.io/jack-it-browser-game/
-```
+Live simulator: [https://jakedowns.github.io/jack-it-browser-game/](https://jakedowns.github.io/jack-it-browser-game/)
 
 The page loads Three.js and the `box3d-wasm` package from jsDelivr, so the browser needs network access.
