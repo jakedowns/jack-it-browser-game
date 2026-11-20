@@ -17,18 +17,16 @@ Open <http://localhost:8000/>.
 
 - `W` / `S` — throttle / reverse (truck-local)
 - `A` / `D` — steer
-- `Q` / `E` — lower / raise forks
+- `Q` / `E` — tap once to lower / raise forks; the mast travels on its own
 - `P` — unplug / plug charger cord
 - `G` — debug menu (switch to camera-oriented controls, pin FPV, teleports, battery/cargo reset)
 - `T` — run the 8-test physics regression suite
 - `R` — restart the current bay
-- Mouse drag — virtual stick; wheel — zoom
+- Mouse drag — virtual stick; wheel or two-finger pinch — zoom
 
 ## GitHub Pages
 
-This repository contains a `gh-pages` branch with `index.html` and `.nojekyll` at the branch root. GitHub Pages can serve it directly.
-
-From the Mac hosting this shared folder:
+Pages deploys directly from **`main` / `(root)`**. The repo root contains `index.html` and `.nojekyll`, so no `gh-pages` branch or copy step is needed.
 
 The `origin` remote is already configured for this checkout. From the Mac hosting this shared folder:
 
@@ -36,16 +34,15 @@ The `origin` remote is already configured for this checkout. From the Mac hostin
 cd /path/to/jack-it
 git remote -v
 git push -u origin main
-git push origin gh-pages
 ```
 
-If you need to recreate the remote elsewhere:
+Then in the GitHub repository: **Settings → Pages → Build and deployment → Deploy from a branch**, choose **`main`** and **`/ (root)`**.
+
+After the site is confirmed live on `main`, the obsolete deployment branch can be removed:
 
 ```bash
-git remote add origin https://github.com/jakedowns/jack-it-browser-game.git
+git push origin --delete gh-pages
 ```
-
-Then in the GitHub repository: **Settings → Pages → Build and deployment → Deploy from a branch**, choose **`gh-pages`** and **`/ (root)`**.
 
 Live simulator: [https://jakedowns.github.io/jack-it-browser-game/](https://jakedowns.github.io/jack-it-browser-game/)
 

@@ -4,7 +4,27 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>PALLET // RUNNER — Box3D Warehouse Simulator</title>
+<meta name="description" content="Drive an electric walkie pallet jack through a 3D warehouse. Box3D rigid-body cartons, fork-level FPV docking, charger cord physics, three bays and an in-page physics suite.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230a0f12'/%3E%3Cpath d='M14 44V20h7l11 14V20h7v24h-7L21 30v14z' fill='%23ffb545'/%3E%3C/svg%3E">
+<link rel="canonical" href="https://jakedowns.github.io/jack-it-browser-game/">
+<meta name="theme-color" content="#0a0f12">
+<meta property="og:locale" content="en_US">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PALLET // RUNNER">
+<meta property="og:title" content="PALLET // RUNNER — 3D Warehouse Simulator">
+<meta property="og:description" content="Thread a loaded pallet out of a tight bay in a browser-based Box3D warehouse sim. Fork-level FPV, loose rigid-body cartons, charger cord physics and three delivery runs.">
+<meta property="og:url" content="https://jakedowns.github.io/jack-it-browser-game/">
+<meta property="og:image" content="https://jakedowns.github.io/jack-it-browser-game/og-image.jpg">
+<meta property="og:image:secure_url" content="https://jakedowns.github.io/jack-it-browser-game/og-image.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Isometric view of a yellow electric pallet jack carrying 27 cardboard boxes toward a glowing amber drop zone in a dark warehouse.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PALLET // RUNNER — 3D Warehouse Simulator">
+<meta name="twitter:description" content="A browser-based Box3D warehouse sim: fork-level FPV docking, 27 loose rigid-body cartons, charger cord physics and three delivery runs.">
+<meta name="twitter:image" content="https://jakedowns.github.io/jack-it-browser-game/og-image.jpg">
+<meta name="twitter:image:alt" content="Isometric view of a yellow electric pallet jack carrying 27 cardboard boxes toward a glowing amber drop zone in a dark warehouse.">
 <style>
   :root{
     --bg:#0a0f12;
@@ -26,7 +46,10 @@
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
   canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none;touch-action:none}
-  #app{position:fixed;inset:0;pointer-events:none}
+  #app{position:fixed;inset:0;pointer-events:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #app *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #testReport,#testReport *{-webkit-user-select:text;user-select:text}
+  button,a{-webkit-tap-highlight-color:transparent}
   .hud{position:absolute;inset:0;pointer-events:none}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
@@ -88,7 +111,7 @@
   .actBtn .big{font-size:15px;line-height:1;color:var(--amber)}
   .actBtn:hover{border-color:var(--line-2);background:linear-gradient(180deg,rgba(29,39,44,.96),rgba(15,22,26,.96))}
   .actBtn:active{transform:translateY(1px)}
-  .actBtn.holding{border-color:var(--amber);box-shadow:0 0 0 1px rgba(255,181,69,.3),0 10px 30px rgba(0,0,0,.3)}
+  .actBtn.holding,.actBtn.tap{border-color:var(--amber);box-shadow:0 0 0 1px rgba(255,181,69,.35),0 0 24px rgba(255,181,69,.16),0 10px 30px rgba(0,0,0,.3)}
   .actBtn .sub{font-size:8px;color:var(--dim);letter-spacing:.1em}
   #cordBtn .big{color:var(--blue)}
   #cordBtn.snapped .big{color:var(--red)}
@@ -294,10 +317,10 @@
     <div id="legend">
       <div class="row"><span><kbd>W</kbd><kbd>S</kbd></span><span class="txt">throttle / reverse — truck-local</span></div>
       <div class="row"><span><kbd>A</kbd><kbd>D</kbd></span><span class="txt">steer left / right</span></div>
-      <div class="row"><span><kbd>Q</kbd><kbd>E</kbd></span><span class="txt">lower / raise forks</span></div>
+      <div class="row"><span><kbd>Q</kbd><kbd>E</kbd></span><span class="txt">tap: lower / raise forks</span></div>
       <div class="row"><span><kbd>P</kbd></span><span class="txt">plug / unplug charger cord</span></div>
       <div class="row"><span><kbd>G</kbd> <kbd>T</kbd></span><span class="txt">debug menu · physics suite</span></div>
-      <div class="row"><span class="txt" style="color:#506068">drag on floor for virtual stick · wheel to zoom</span></div>
+      <div class="row"><span class="txt" style="color:#506068">drag for virtual stick · pinch / wheel to zoom</span></div>
     </div>
 
     <div id="telemetry">
@@ -322,8 +345,8 @@
 
     <div id="actionBar">
       <button class="actBtn" id="cordBtn" data-action="cord"><span class="big">⚡</span><span>Unplug Cord</span><span class="sub">P</span></button>
-      <button class="actBtn" data-action="liftUp" id="liftUpBtn"><span class="big">▲</span><span>Lift</span><span class="sub">E</span></button>
-      <button class="actBtn" data-action="liftDown" id="liftDownBtn"><span class="big">▼</span><span>Lower</span><span class="sub">Q</span></button>
+      <button class="actBtn" data-action="liftUp" id="liftUpBtn"><span class="big">▲</span><span>Lift</span><span class="sub">TAP · E</span></button>
+      <button class="actBtn" data-action="liftDown" id="liftDownBtn"><span class="big">▼</span><span>Lower</span><span class="sub">TAP · Q</span></button>
     </div>
 
     <div id="pipWrap">
@@ -353,14 +376,14 @@
         <div class="keyGrid">
           <div class="keyRow"><span class="keys"><kbd>W</kbd><kbd>S</kbd></span><span>throttle / reverse (truck-local)</span></div>
           <div class="keyRow"><span class="keys"><kbd>A</kbd><kbd>D</kbd></span><span>steer left / right</span></div>
-          <div class="keyRow"><span class="keys"><kbd>Q</kbd><kbd>E</kbd></span><span>raise / lower forks</span></div>
+          <div class="keyRow"><span class="keys"><kbd>Q</kbd><kbd>E</kbd></span><span>tap: raise / lower forks</span></div>
           <div class="keyRow"><span class="keys"><kbd>P</kbd></span><span>unplug / plug cord</span></div>
           <div class="keyRow"><span class="keys"><kbd>G</kbd></span><span>debug menu · camera-relative toggle</span></div>
           <div class="keyRow"><span class="keys"><kbd>T</kbd></span><span>run physics regression suite</span></div>
         </div>
         <div class="modalActions">
           <button class="bigBtn" data-action="start">Begin shift <span>→</span></button>
-          <span class="fine">Drive slowly into the pockets.<br>Raise forks ≥35% to capture the pallet.</span>
+          <span class="fine">Drive slowly into the pockets.<br>Tap Lift — capture happens at 35%.</span>
         </div>
       </div>
       <div class="credit"><b>BOX3D</b> ERIN CATTO<br>THREE.JS · SINGLE FILE</div>
@@ -428,7 +451,7 @@
         <div class="keyGrid" style="margin-top:20px">
           <div class="keyRow"><span class="keys"><kbd>W</kbd><kbd>S</kbd></span><span>throttle / reverse (truck-local)</span></div>
           <div class="keyRow"><span class="keys"><kbd>A</kbd><kbd>D</kbd></span><span>steer left / right</span></div>
-          <div class="keyRow"><span class="keys"><kbd>Q</kbd><kbd>E</kbd></span><span>lower / raise forks</span></div>
+          <div class="keyRow"><span class="keys"><kbd>Q</kbd><kbd>E</kbd></span><span>tap: lower / raise forks</span></div>
           <div class="keyRow"><span class="keys"><kbd>P</kbd></span><span>unplug / plug the charger cord</span></div>
           <div class="keyRow"><span class="keys"><kbd>G</kbd></span><span>debug menu · control scheme</span></div>
           <div class="keyRow"><span class="keys"><kbd>R</kbd></span><span>restart the current bay</span></div>
@@ -579,6 +602,7 @@ const LEVELS = [
    ========================================================================= */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
+const moveTowards = (v, target, step) => (v < target ? Math.min(v + step, target) : Math.max(v - step, target));
 const damp = (a, b, lambda, dt) => lerp(a, b, 1 - Math.exp(-lambda * dt));
 const normAngle = (a) => {
   while (a > Math.PI) a -= Math.PI * 2;
@@ -1593,6 +1617,7 @@ const truck = {
   speed: 0,
   steerAngle: 0,
   forkLift: 0,
+  liftTarget: 0,
   prevSpeed: 0,
   battery: 100,
   engagement: { count: 0, sides: [], singleTineSide: 0 },
@@ -1616,7 +1641,8 @@ const pallet = {
   tiltPitch: 0,
   singleTineSide: 0,
   delivered: false,
-  targetY: 0.071
+  targetY: 0.071,
+  carryAssist: false
 };
 
 const input = {
@@ -1629,6 +1655,9 @@ const input = {
   joyX: 0, joyY: 0,
   usingStick: false
 };
+
+const touchPoints = new Map();
+let pinch = null;
 
 let controlMode = 'truck';          // truck-local by default
 let debugFpvAlways = false;
@@ -1662,7 +1691,10 @@ for (let layer = 0; layer < 3; layer++) {
           z: (iz - 1) * 0.292
         },
         spilled: false,
-        settleTimer: 0
+        settleTimer: 0,
+        carryAttached: false,
+        carryLocal: null,
+        carryQuat: null
       });
     }
   }
@@ -1951,6 +1983,7 @@ function createPalletAndCargo() {
   pallet.tiltRoll = 0;
   pallet.tiltPitch = 0;
   pallet.singleTineSide = 0;
+  pallet.carryAssist = false;
 
   pallet.body = world.createBody({
     type: 'dynamic',
@@ -1988,6 +2021,9 @@ function createPalletAndCargo() {
     b.body.setAngularDamping(0.12);
     b.spilled = false;
     b.settleTimer = 0;
+    b.carryAttached = false;
+    b.carryLocal = null;
+    b.carryQuat = null;
     b.mesh.visible = true;
   }
 }
@@ -2009,6 +2045,7 @@ function loadLevel(index) {
   pallet.baseY = 0;
   pallet.carried = false;
   pallet.delivered = false;
+  pallet.carryAssist = false;
 
   // ----- truck spawn -----
   truck.x = START.x;
@@ -2018,6 +2055,7 @@ function loadLevel(index) {
   truck.prevSpeed = 0;
   truck.steerAngle = 0;
   truck.forkLift = 0;
+  truck.liftTarget = 0;
   truck.battery = 100;
   truck.bumpCooldown = 0;
   truck.stress = 0;
@@ -2126,6 +2164,69 @@ function computeForkEngagement() {
   };
 }
 
+const _assistQ = new THREE.Quaternion();
+const _assistIQ = new THREE.Quaternion();
+const _assistBQ = new THREE.Quaternion();
+const _assistLQ = new THREE.Quaternion();
+const _assistOff = new THREE.Vector3();
+
+function clearCargoAssist() {
+  pallet.carryAssist = false;
+  for (const b of cargoBoxes) b.carryAttached = false;
+}
+
+function attachCargo() {
+  pallet.carryAssist = false;
+  if (!pallet.body) return;
+  const p = pallet.body.getPosition();
+  const r = pallet.body.getRotation();
+  _assistQ.set(r.x, r.y, r.z, r.w);
+  _assistIQ.copy(_assistQ).invert();
+  let count = 0;
+  for (const b of cargoBoxes) {
+    b.carryAttached = false;
+    if (!b.body || b.spilled) continue;
+    const bp = b.body.getPosition();
+    _assistOff.set(bp.x - p.x, bp.y - p.y, bp.z - p.z).applyQuaternion(_assistIQ);
+    if (Math.abs(_assistOff.x) > 0.56 || Math.abs(_assistOff.z) > 0.625 ||
+      _assistOff.y < 0.08 || _assistOff.y > 1.35) continue;
+    b.carryLocal = { x: _assistOff.x, y: _assistOff.y, z: _assistOff.z };
+    const br = b.body.getRotation();
+    _assistBQ.set(br.x, br.y, br.z, br.w);
+    _assistLQ.copy(_assistIQ).multiply(_assistBQ);
+    b.carryQuat = { x: _assistLQ.x, y: _assistLQ.y, z: _assistLQ.z, w: _assistLQ.w };
+    b.carryAttached = true;
+    count++;
+  }
+  pallet.carryAssist = count > 0;
+}
+
+function applyCargoCarryAssist() {
+  if (!pallet.carried || !pallet.carryAssist || !pallet.body) return;
+  const p = pallet.body.getPosition();
+  const r = pallet.body.getRotation();
+  const pv = pallet.body.getLinearVelocity();
+  _assistQ.set(r.x, r.y, r.z, r.w);
+  const omega = truck.yawRate;
+  for (const b of cargoBoxes) {
+    if (!b.carryAttached || !b.body || b.spilled) continue;
+    _assistOff.set(b.carryLocal.x, b.carryLocal.y, b.carryLocal.z).applyQuaternion(_assistQ);
+    _assistLQ.set(b.carryQuat.x, b.carryQuat.y, b.carryQuat.z, b.carryQuat.w);
+    _assistBQ.copy(_assistQ).multiply(_assistLQ);
+    b.body.setTransform(
+      { x: p.x + _assistOff.x, y: p.y + _assistOff.y, z: p.z + _assistOff.z },
+      { x: _assistBQ.x, y: _assistBQ.y, z: _assistBQ.z, w: _assistBQ.w }
+    );
+    b.body.setLinearVelocity({
+      x: pv.x - omega * _assistOff.z,
+      y: pv.y,
+      z: pv.z + omega * _assistOff.x
+    });
+    b.body.setAngularVelocity({ x: 0, y: omega, z: 0 });
+    b.body.setAwake(true);
+  }
+}
+
 function capturePallet(eng) {
   if (!pallet.body || pallet.carried) return;
   const before = pallet.body.getPosition();
@@ -2150,6 +2251,7 @@ function capturePallet(eng) {
     b.body.setAngularVelocity({ x: 0, y: 0, z: 0 });
     b.body.setAwake(true);
   }
+  attachCargo();
   pallet.body.setAwake(true);
   showToast('PALLET CAPTURED · load is live on the forks', 'good');
 }
@@ -2158,6 +2260,7 @@ function releasePallet() {
   if (!pallet.body || !pallet.carried) return;
   const p = pallet.body.getPosition();
   const dy = 0.071 - p.y;
+  clearCargoAssist();
   pallet.carried = false;
   pallet.singleTineSide = 0;
   pallet.tiltRoll = 0;
@@ -2469,7 +2572,6 @@ function stepPhysics(dt) {
   truck.steerAngle = damp(truck.steerAngle, steerTarget, 10, dt);
 
   // ---- longitudinal drive --------------------------------------------------
-  const lifting = Math.abs(phys.lift) > 0.001;
   if (Math.abs(throttle) > 0.001) {
     truck.speed += throttle * PHYS.accelRate * dt;
   } else {
@@ -2478,10 +2580,16 @@ function stepPhysics(dt) {
   }
   truck.speed = clamp(truck.speed, -PHYS.maxSpeed, PHYS.maxSpeed);
 
-  // ---- zero-drift flush lift ----------------------------------------------
+  // ---- tap-to-travel lift --------------------------------------------------
+  // A tap sets a target; the mast travels there on its own. Tests drive
+  // testInput.lift directly, so they still work through the same target.
+  const liftCmd = testing ? (phys.lift || 0) : (input.lift || 0);
+  if (liftCmd > 0.001) truck.liftTarget = 1;
+  else if (liftCmd < -0.001) truck.liftTarget = 0;
   const oldLift = truck.forkLift;
-  truck.liftRate = phys.lift * 0.65;
-  truck.forkLift = clamp(truck.forkLift + truck.liftRate * dt, 0, 1);
+  truck.forkLift = moveTowards(truck.forkLift, truck.liftTarget, 0.65 * dt);
+  truck.liftRate = (truck.forkLift - oldLift) / Math.max(dt, 1e-4);
+  const lifting = Math.abs(truck.liftRate) > 1e-4;
   if (Math.abs(truck.forkLift - oldLift) > 1e-7 && Math.abs(throttle) < 0.001 && Math.abs(truck.speed) < 0.06) {
     truck.speed = 0;
   }
@@ -2534,8 +2642,24 @@ function stepPhysics(dt) {
   // ---- carried pallet follows the forks -----------------------------------
   updatePalletCarry(dt, yawRate);
 
+  // ---- cargo carry lock ----------------------------------------------------
+  // Box3D friction alone lets stacked cartons lag behind the pallet's yaw.
+  // While the load is square and stable, pin each carton to a local pallet
+  // transform. Hard turns, tilt and impacts break the lock and hand the load
+  // back to the rigid-body solver.
+  const latAcc = truck.speed * yawRate;
+  const fwdAcc = (truck.speed - prevSpeed) / Math.max(dt, 1e-4);
+  const latLimit = 2.4 + 1.2 * PHYS.boxFriction * PHYS.boxWeight;
+  if (pallet.carried && pallet.carryAssist &&
+    (Math.abs(pallet.tiltRoll) > 0.10 || Math.abs(pallet.tiltPitch) > 0.13 ||
+      Math.abs(latAcc) > latLimit || Math.abs(fwdAcc) > 5.5)) {
+    clearCargoAssist();
+    if (!testing) showToast('LOAD SHIFT · cargo breaking loose', 'bad');
+  }
+
   // ---- Box3D solve ---------------------------------------------------------
   world.step(Math.min(dt, 1 / 30), 4);
+  applyCargoCarryAssist();
 
   // ---- read back -----------------------------------------------------------
   readPalletPose();
@@ -2544,12 +2668,9 @@ function stepPhysics(dt) {
 
   // ---- cargo inertia stress ------------------------------------------------
   if (pallet.carried && !testing) {
-    const latAcc = truck.speed * yawRate;
-    const fwdAcc = (truck.speed - prevSpeed) / Math.max(dt, 1e-4);
     truck.latAcc = latAcc;
     const stress = Math.min(1, (Math.abs(latAcc) + Math.abs(fwdAcc) * 0.55) / 5.2);
     truck.stress = lerp(truck.stress, stress, 1 - Math.exp(-4 * dt));
-    const latLimit = 2.4 + 1.2 * PHYS.boxFriction * PHYS.boxWeight;
     if (Math.abs(latAcc) > latLimit && truck.bumpCooldown <= 0) {
       truck.bumpCooldown = 0.55;
       const rx = Math.cos(truck.yaw), rz = -Math.sin(truck.yaw);
@@ -2667,8 +2788,6 @@ function updateCord(dt, force = false) {
 /* =========================================================================
    20. INPUT
    ========================================================================= */
-let keyLift = 0;
-let btnLift = 0;
 let lastHudState = '';
 
 function updateInput() {
@@ -2693,7 +2812,17 @@ function updateInput() {
   input.dy = clamp(dy, -1, 1);
   input.throttle = clamp(throttle, -1, 1);
   input.steer = clamp(steer, -1, 1);
-  input.lift = clamp(keyLift + btnLift, -1, 1);
+  input.lift = 0;
+}
+
+function triggerLift(dir) {
+  if (gameState !== 'playing') return;
+  truck.liftTarget = dir > 0 ? 1 : 0;
+  const btn = dir > 0 ? el('liftUpBtn') : el('liftDownBtn');
+  if (btn) {
+    btn.classList.add('tap');
+    setTimeout(() => btn.classList.remove('tap'), 190);
+  }
 }
 
 let simPaused = false;
@@ -2736,7 +2865,6 @@ function toggleDebug(force) {
   simPaused = show || el('helpModal').classList.contains('show');
   if (show) {
     input.keys.clear();
-    keyLift = 0; btnLift = 0;
     input.dx = 0; input.dy = 0; input.throttle = 0; input.steer = 0;
     el('stick').classList.remove('show');
     syncControlUi();
@@ -2792,6 +2920,8 @@ function debugReseatCargo() {
     b.spilled = false;
   }
   spilledBoxes = 0;
+  if (pallet.carried) attachCargo();
+  else clearCargoAssist();
   showToast('DEBUG · cartons re-seated on the pallet.', 'good');
   updateHud(1);
 }
@@ -2803,9 +2933,9 @@ window.addEventListener('keydown', (e) => {
     code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight') {
     input.keys.add(code);
   }
-  if (code === 'KeyQ') { keyLift = -1; input.keys.add(code); }
-  if (code === 'KeyE') { keyLift = 1; input.keys.add(code); }
   if (e.repeat) return;
+  if (code === 'KeyQ') triggerLift(-1);
+  if (code === 'KeyE') triggerLift(1);
   if (code === 'KeyP') toggleCord();
   if (code === 'KeyT') runAutomatedPhysicsTests();
   if (code === 'KeyR' && gameState !== 'menu') restartLevel();
@@ -2816,20 +2946,35 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => {
   input.keys.delete(e.code);
-  if (e.code === 'KeyQ' && keyLift < 0) keyLift = 0;
-  if (e.code === 'KeyE' && keyLift > 0) keyLift = 0;
 });
 
 window.addEventListener('blur', () => {
   input.keys.clear();
-  keyLift = 0; btnLift = 0;
   input.pointer = false;
+  touchPoints.clear();
+  pinch = null;
   el('stick').classList.remove('show');
 });
 
-// virtual stick
+// virtual stick + two-finger pinch zoom
 canvas.addEventListener('pointerdown', (e) => {
   if (gameState !== 'playing' || e.button !== 0) return;
+  if (e.pointerType === 'touch') {
+    touchPoints.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touchPoints.size === 2) {
+      const pts = [...touchPoints.values()];
+      pinch = {
+        dist: Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)),
+        zoom: cameraZoom
+      };
+      input.pointer = false;
+      input.pointerId = null;
+      input.joyX = 0; input.joyY = 0;
+      el('stick').classList.remove('show');
+      return;
+    }
+    if (touchPoints.size > 2) return;
+  }
   input.pointer = true;
   input.pointerId = e.pointerId;
   input.originX = e.clientX;
@@ -2840,9 +2985,18 @@ canvas.addEventListener('pointerdown', (e) => {
   st.style.top = e.clientY + 'px';
   st.classList.add('show');
   el('stickKnob').style.transform = 'translate(0,0)';
-  canvas.setPointerCapture?.(e.pointerId);
+  try { canvas.setPointerCapture?.(e.pointerId); } catch (err) { /* synthetic pointers */ }
 });
 canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'touch' && touchPoints.has(e.pointerId)) {
+    touchPoints.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && touchPoints.size >= 2) {
+      const pts = [...touchPoints.values()];
+      const d = Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y));
+      cameraZoom = clamp(pinch.zoom * (d / pinch.dist), 0.55, 1.9);
+      return;
+    }
+  }
   if (!input.pointer || e.pointerId !== input.pointerId) return;
   let vx = (e.clientX - input.originX) / 74;
   let vy = (input.originY - e.clientY) / 74;
@@ -2852,6 +3006,10 @@ canvas.addEventListener('pointermove', (e) => {
   el('stickKnob').style.transform = `translate(${vx * 30}px, ${-vy * 30}px)`;
 });
 function endPointer(e) {
+  if (e && e.pointerType === 'touch') {
+    touchPoints.delete(e.pointerId);
+    if (pinch && touchPoints.size < 2) pinch = null;
+  }
   if (!input.pointer) return;
   if (e && e.pointerId !== input.pointerId) return;
   input.pointer = false;
@@ -2861,7 +3019,7 @@ function endPointer(e) {
 }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
-canvas.addEventListener('pointerleave', (e) => { if (input.pointer) endPointer(e); });
+canvas.addEventListener('pointerleave', (e) => { if (input.pointer || e.pointerType === 'touch') endPointer(e); });
 
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
@@ -2873,17 +3031,16 @@ document.querySelectorAll('[data-action]').forEach((btn) => {
   const action = btn.dataset.action;
   if (action === 'liftUp' || action === 'liftDown') {
     const val = action === 'liftUp' ? 1 : -1;
-    const on = (e) => {
+    let lastTap = 0;
+    const tap = (e) => {
       e.preventDefault();
-      btnLift = val;
-      btn.classList.add('holding');
-      btn.setPointerCapture?.(e.pointerId);
+      const now = performance.now();
+      if (now - lastTap < 240) return;
+      lastTap = now;
+      triggerLift(val);
     };
-    const off = () => { if (btnLift === val) btnLift = 0; btn.classList.remove('holding'); };
-    btn.addEventListener('pointerdown', on);
-    btn.addEventListener('pointerup', off);
-    btn.addEventListener('pointercancel', off);
-    btn.addEventListener('pointerleave', off);
+    btn.addEventListener('pointerdown', tap);
+    btn.addEventListener('click', tap);
     return;
   }
   btn.addEventListener('click', () => {
@@ -2959,7 +3116,9 @@ function triggerDelivery() {
   if (gameState !== 'playing') return;
   gameState = 'delivered';
   input.pointer = false;
-  btnLift = 0; keyLift = 0;
+  truck.liftTarget = truck.forkLift;
+  touchPoints.clear();
+  pinch = null;
   el('stick').classList.remove('show');
   const result = computeScore();
   el('smTime').textContent = fmtTime(elapsed).slice(0, 8);
@@ -3207,10 +3366,11 @@ function resetTestScenario() {
 
   truck.x = 0; truck.z = -0.55; truck.yaw = 0;
   truck.speed = 0; truck.prevSpeed = 0; truck.steerAngle = 0;
-  truck.forkLift = 0; truck.battery = 100; truck.bumpCooldown = 0;
+  truck.forkLift = 0; truck.liftTarget = 0; truck.battery = 100; truck.bumpCooldown = 0;
   truck.latAcc = 0; truck.yawRate = 0; truck.liftRate = 0; truck.stress = 0;
   truck.engagement = { count: 0, sides: [], singleTineSide: 0 };
 
+  clearCargoAssist();
   pallet.carried = false; pallet.delivered = false;
   pallet.singleTineSide = 0; pallet.tiltRoll = 0; pallet.tiltPitch = 0;
   pallet.x = 0; pallet.z = 0; pallet.yaw = 0; pallet.y = 0.071; pallet.baseY = 0;
@@ -3222,6 +3382,9 @@ function resetTestScenario() {
 
   for (const b of cargoBoxes) {
     b.spilled = false;
+    b.carryAttached = false;
+    b.carryLocal = null;
+    b.carryQuat = null;
     if (!b.body) continue;
     b.body.setType('dynamic');
     b.body.setTransform({
@@ -3253,7 +3416,7 @@ function resetTestScenario() {
 
 function placeCarried(lift = 0.6) {
   truck.x = 0; truck.z = 0; truck.yaw = 0;
-  truck.speed = 0; truck.steerAngle = 0; truck.forkLift = lift;
+  truck.speed = 0; truck.steerAngle = 0; truck.forkLift = lift; truck.liftTarget = lift;
   pallet.carried = true; pallet.singleTineSide = 0; pallet.tiltRoll = 0; pallet.tiltPitch = 0;
   pallet.body.setType('kinematic');
   const y = FORK_BASE_TOP + lift * FORK_LIFT_RANGE + 0.07;
@@ -3269,6 +3432,7 @@ function placeCarried(lift = 0.6) {
     b.body.setAngularVelocity({ x: 0, y: 0, z: 0 });
     b.body.setAwake(true);
   }
+  attachCargo();
   testInput.dx = 0; testInput.dy = 0; testInput.lift = 0;
   testInput.throttle = 0; testInput.steer = 0;
   for (let i = 0; i < 24; i++) stepPhysics(1 / 60);
@@ -3281,7 +3445,7 @@ function captureState() {
   return {
     truck: {
       x: truck.x, z: truck.z, yaw: truck.yaw, speed: truck.speed,
-      steerAngle: truck.steerAngle, forkLift: truck.forkLift, prevSpeed: truck.prevSpeed,
+      steerAngle: truck.steerAngle, forkLift: truck.forkLift, liftTarget: truck.liftTarget, prevSpeed: truck.prevSpeed,
       battery: truck.battery, latAcc: truck.latAcc, yawRate: truck.yawRate,
       liftRate: truck.liftRate, bumpCooldown: truck.bumpCooldown, stress: truck.stress,
       engagement: JSON.parse(JSON.stringify(truck.engagement))
@@ -3289,6 +3453,7 @@ function captureState() {
     pallet: {
       carried: pallet.carried, delivered: pallet.delivered, yaw: pallet.yaw,
       singleTineSide: pallet.singleTineSide, tiltRoll: pallet.tiltRoll, tiltPitch: pallet.tiltPitch,
+      carryAssist: pallet.carryAssist,
       type: pallet.body.getType(), pos: { ...pal }, rot: { ...palR },
       lv: pallet.body.getLinearVelocity(), av: pallet.body.getAngularVelocity()
     },
@@ -3342,6 +3507,7 @@ function restoreState(s) {
   pallet.singleTineSide = s.pallet.singleTineSide;
   pallet.tiltRoll = s.pallet.tiltRoll;
   pallet.tiltPitch = s.pallet.tiltPitch;
+  pallet.carryAssist = !!s.pallet.carryAssist;
 
   cargoBoxes.forEach((b, i) => {
     const bs = s.boxes[i];
@@ -3353,6 +3519,9 @@ function restoreState(s) {
     b.body.setAwake(true);
     b.spilled = bs.spilled;
   });
+
+  if (pallet.carried && pallet.carryAssist) attachCargo();
+  else clearCargoAssist();
 
   gameState = s.gameState;
   readPalletPose();
@@ -3732,7 +3901,9 @@ window.__SIM = {
   testInput,
   startShift, loadLevel, restartLevel, stepPhysics, getCameraRelativeControls,
   updateInput, setControlScheme, toggleDebug, debugTeleportBay, debugReseatCargo,
+  triggerLift, attachCargo, applyCargoCarryAssist,
   get controlMode() { return controlMode; },
+  get cameraZoom() { return cameraZoom; },
   get debugFpvAlways() { return debugFpvAlways; },
   computeForkEngagement, resetTestScenario, placeCarried,
   runAutomatedPhysicsTests, captureState, restoreState,
